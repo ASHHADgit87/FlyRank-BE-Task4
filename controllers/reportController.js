@@ -1,7 +1,13 @@
 const { v4: uuidv4 } = require("uuid");
+const {
+  createJob,
+  getJob,
+  listJobs,
+  completeJob,
+  failJob,
+} = require("../jobs/jobStore");
+const { buildReportPdf } = require("../pdf/buildReportPdf");
 const { getSalesSummary } = require("../db/salesQuery");
-const { createJob, getJob, listJobs } = require("../jobs/jobStore");
-const { runReportJob } = require("../jobs/reportJob");
 const { successResponse, errorResponse } = require("../utils/response");
 
 const getSummary = async (req, res) => {
@@ -13,7 +19,13 @@ const createReport = async (req, res) => {
   const jobId = uuidv4();
   createJob(jobId);
 
-  runReportJob(jobId);
+  try {
+    const summary = await getSalesSummary();
+    const pdfBuffer = await buildReportPdf(summary);
+    completeJob(jobId, pdfBuffer);
+  } catch (err) {
+    failJob(jobId, err);
+  }
 
   return successResponse(res, 202, "Report generation started", {
     jobId,
