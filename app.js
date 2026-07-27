@@ -18,10 +18,19 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://vercel.live",
+          "https://*.vercel-scripts.com",
+        ],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        connectSrc: ["'self'"],
-        imgSrc: ["'self'", "data:"],
+        connectSrc: [
+          "'self'",
+          "https://vercel.live",
+          "https://*.vercel.app",
+          "https://*.vercel-scripts.com",
+        ],
+        imgSrc: ["'self'", "data:", "https://vercel.live"],
       },
     },
   }),
@@ -55,6 +64,10 @@ app.get("/", (req, res, next) => {
       "GET /reports/:id/download",
     ],
   });
+});
+
+app.get("/favicon.ico", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "favicon.svg"));
 });
 
 app.use(reportRoutes);
