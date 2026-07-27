@@ -16,19 +16,25 @@ async function pollStatus(jobId, statusUrl) {
   progressEl.style.display = "block";
 
   for (let i = 0; i < 30; i += 1) {
-    const res = await fetch(statusUrl);
-    const json = await res.json();
-    const { status, downloadUrl } = json.data;
+    try {
+      const res = await fetch(statusUrl);
+      const json = await res.json();
+      const data = json && json.data ? json.data : {};
+      const status = data.status;
+      const downloadUrl = data.downloadUrl;
 
-    if (status === "completed") {
-      progressEl.innerHTML = `Done — <a href="${downloadUrl}" target="_blank">Download PDF</a>`;
-      setOutput(json);
-      return;
-    }
-    if (status === "failed") {
-      progressEl.textContent = "Report generation failed.";
-      setOutput(json);
-      return;
+      if (status === "completed") {
+        progressEl.innerHTML = `Done — <a href="${downloadUrl}" target="_blank">Download PDF</a>`;
+        setOutput(json);
+        return;
+      }
+      if (status === "failed") {
+        progressEl.textContent = "Report generation failed.";
+        setOutput(json);
+        return;
+      }
+    } catch (error) {
+      console.error("Status poll failed:", error);
     }
     await new Promise((r) => setTimeout(r, 400));
   }
@@ -37,11 +43,18 @@ async function pollStatus(jobId, statusUrl) {
 
 async function generateReport() {
   setOutput({ status: "starting job..." });
-  const res = await fetch("/reports", { method: "POST" });
-  const json = await res.json();
-  setOutput(json);
-  if (res.status === 202) {
-    pollStatus(json.data.jobId, json.data.statusUrl);
+  try {
+    const res = await fetch("/reports", { method: "POST" });
+    const json = await res.json();
+    setOutput(json);
+    if (res.status === 202 && json && json.data) {
+      pollStatus(json.data.jobId, json.data.statusUrl);
+    } else {
+      progressEl.textContent = "Unable to start report generation.";
+    }
+  } catch (error) {
+    console.error("Generate report failed:", error);
+    progressEl.textContent = "Unable to start report generation.";
   }
 }
 
