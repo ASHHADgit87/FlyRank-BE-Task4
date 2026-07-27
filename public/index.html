@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlyRank PDF Report Generator</title>
+    <style>
+      :root {
+        --bg: #0a0806;
+        --copper: #ff8a4c;
+        --teal: #2dd4bf;
+        --amethyst: #a78bfa;
+        --glass: rgba(255, 255, 255, 0.05);
+        --glass-border: rgba(255, 255, 255, 0.12);
+        --text: #fdf3ea;
+        --muted: #ab9c8c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+      }
+
+      body {
+        color: var(--text);
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        overflow-x: hidden;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+      }
+
+      .scene {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        perspective: 1200px;
+        overflow: hidden;
+      }
+
+      .glow {
+        position: absolute;
+        inset: -20%;
+        filter: blur(95px);
+        opacity: 0.4;
+      }
+      .glow span {
+        position: absolute;
+        border-radius: 50%;
+        mix-blend-mode: screen;
+      }
+      .glow span:nth-child(1) {
+        width: 540px;
+        height: 540px;
+        top: 0%;
+        left: 6%;
+        background: radial-gradient(
+          circle at 30% 30%,
+          var(--copper),
+          transparent 70%
+        );
+        animation: driftA 20s ease-in-out infinite;
+      }
+      .glow span:nth-child(2) {
+        width: 460px;
+        height: 460px;
+        bottom: -6%;
+        right: 4%;
+        background: radial-gradient(
+          circle at 60% 40%,
+          var(--teal),
+          transparent 70%
+        );
+        animation: driftB 24s ease-in-out infinite;
+      }
+      .glow span:nth-child(3) {
+        width: 400px;
+        height: 400px;
+        top: 45%;
+        left: 44%;
+        background: radial-gradient(
+          circle at 50% 50%,
+          var(--amethyst),
+          transparent 70%
+        );
+        animation: driftC 27s ease-in-out infinite;
+      }
+      @keyframes driftA {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(60px, 40px) scale(1.15);
+        }
+      }
+      @keyframes driftB {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(-55px, -35px) scale(1.1);
+        }
+      }
+      @keyframes driftC {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(-46%, -56%) scale(1.2);
+        }
+      }
+
+      .dot-overlay {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+          rgba(255, 138, 76, 0.12) 1.5px,
+          transparent 1.5px
+        );
+        background-size: 34px 34px;
+        mask-image: radial-gradient(circle at 50% 20%, black, transparent 70%);
+      }
+
+      .shape-field {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+      }
+
+      /* Rotating folded-corner "report page" */
+      .page-scene {
+        position: absolute;
+        width: 110px;
+        height: 140px;
+        top: 12%;
+        right: 9%;
+        perspective: 600px;
+        animation: floatPage 11s ease-in-out infinite;
+      }
+      .page {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        animation: spinPage 16s linear infinite;
+        background: linear-gradient(
+          160deg,
+          rgba(255, 255, 255, 0.14),
+          rgba(255, 255, 255, 0.03)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 6px;
+        box-shadow: 0 20px 40px -18px rgba(255, 138, 76, 0.4);
+      }
+      .page::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 26px;
+        height: 26px;
+        background: linear-gradient(135deg, transparent 50%, var(--copper) 50%);
+        border-bottom-left-radius: 6px;
+      }
+      .page .line {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.22);
+      }
+      .page .line:nth-child(2) {
+        top: 40px;
+      }
+      .page .line:nth-child(3) {
+        top: 54px;
+        width: 60%;
+      }
+      .page .line:nth-child(4) {
+        top: 74px;
+      }
+      .page .line:nth-child(5) {
+        top: 88px;
+        width: 75%;
+      }
+
+      @keyframes spinPage {
+        from {
+          transform: rotateY(0deg);
+        }
+        to {
+          transform: rotateY(360deg);
+        }
+      }
+      @keyframes floatPage {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+
+      /* Isometric 3D bar chart */
+      .chart-scene {
+        position: absolute;
+        width: 220px;
+        height: 150px;
+        left: 6%;
+        bottom: 10%;
+        transform-style: preserve-3d;
+        transform: rotateX(50deg) rotateZ(-35deg);
+        animation: floatChart 13s ease-in-out infinite;
+      }
+      .bar {
+        position: absolute;
+        bottom: 0;
+        width: 30px;
+        transform-style: preserve-3d;
+        border-radius: 3px 3px 0 0;
+      }
+      .bar .face {
+        position: absolute;
+        inset: 0;
+        border-radius: 3px 3px 0 0;
+      }
+      .bar .top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 8px;
+        border-radius: 3px 3px 0 0;
+      }
+
+      .bar1 {
+        left: 0;
+        height: 70px;
+        background: var(--copper);
+      }
+      .bar2 {
+        left: 45px;
+        height: 110px;
+        background: var(--teal);
+      }
+      .bar3 {
+        left: 90px;
+        height: 50px;
+        background: var(--amethyst);
+      }
+      .bar4 {
+        left: 135px;
+        height: 95px;
+        background: var(--copper);
+        opacity: 0.75;
+      }
+      .bar5 {
+        left: 180px;
+        height: 130px;
+        background: var(--teal);
+        opacity: 0.85;
+      }
+
+      @keyframes floatChart {
+        0%,
+        100% {
+          transform: rotateX(50deg) rotateZ(-35deg) translateY(0);
+        }
+        50% {
+          transform: rotateX(50deg) rotateZ(-35deg) translateY(-16px);
+        }
+      }
+
+      @media (max-width: 880px) {
+        .page-scene,
+        .chart-scene {
+          display: none;
+        }
+      }
+
+      .container {
+        position: relative;
+        z-index: 1;
+        max-width: 760px;
+        width: 100%;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--copper);
+        margin-bottom: 18px;
+      }
+      .badge .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--copper);
+        box-shadow: 0 0 10px 2px var(--copper);
+        animation: pulse 1.8s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(0.7);
+        }
+      }
+
+      h1 {
+        font-size: 40px;
+        margin: 0 0 8px;
+        line-height: 1.1;
+        background: linear-gradient(
+          120deg,
+          #ffffff 10%,
+          var(--copper) 45%,
+          var(--amethyst) 85%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        letter-spacing: -0.02em;
+      }
+
+      p.sub {
+        color: var(--muted);
+        margin: 0 0 32px;
+        font-size: 15px;
+        max-width: 520px;
+      }
+
+      .panel {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 26px;
+        backdrop-filter: blur(18px);
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      }
+
+      .btn-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      button {
+        position: relative;
+        appearance: none;
+        border: 1px solid var(--glass-border);
+        color: var(--text);
+        font-size: 14.5px;
+        font-weight: 600;
+        padding: 14px 18px;
+        border-radius: 14px;
+        cursor: pointer;
+        background: linear-gradient(
+          160deg,
+          rgba(255, 255, 255, 0.09),
+          rgba(255, 255, 255, 0.02)
+        );
+        overflow: hidden;
+        transform-style: preserve-3d;
+        perspective: 400px;
+        transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease,
+          border-color 0.25s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      button svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        opacity: 0.9;
+      }
+      button::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, var(--copper), var(--teal));
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        z-index: -1;
+      }
+      button:hover {
+        transform: translateY(-4px) rotateX(6deg);
+        border-color: rgba(255, 255, 255, 0.35);
+        box-shadow: 0 14px 30px -10px rgba(255, 138, 76, 0.5);
+      }
+      button:hover::before {
+        opacity: 0.16;
+      }
+      button:active {
+        transform: translateY(-1px) scale(0.98);
+      }
+
+      button:nth-child(1) svg {
+        color: var(--teal);
+      }
+      button:nth-child(2) svg {
+        color: var(--copper);
+      }
+
+      #progress {
+        display: none;
+        margin-bottom: 14px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: rgba(45, 212, 191, 0.1);
+        border: 1px solid rgba(45, 212, 191, 0.3);
+        color: var(--teal);
+        font-size: 13.5px;
+      }
+      #progress a {
+        color: var(--copper);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      #progress a:hover {
+        text-decoration: underline;
+      }
+
+      .output-wrap {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--glass-border);
+        background: #060403;
+      }
+      .output-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid var(--glass-border);
+        font-size: 12px;
+        color: var(--muted);
+        font-family: "Consolas", monospace;
+      }
+      .output-header .traffic {
+        display: flex;
+        gap: 6px;
+        margin-right: 6px;
+      }
+      .output-header .traffic span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .output-header .traffic span:nth-child(1) {
+        background: #ff5f57;
+      }
+      .output-header .traffic span:nth-child(2) {
+        background: #febc2e;
+      }
+      .output-header .traffic span:nth-child(3) {
+        background: #28c840;
+      }
+
+      pre {
+        margin: 0;
+        padding: 18px;
+        font-family: "Consolas", "SF Mono", monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #ffd9b8;
+        max-height: 380px;
+        overflow: auto;
+      }
+
+      footer {
+        margin-top: 26px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer a {
+        color: var(--teal);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene">
+      <div class="glow"><span></span><span></span><span></span></div>
+      <div class="dot-overlay"></div>
+      <div class="shape-field">
+        <div class="page-scene">
+          <div class="page">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+          </div>
+        </div>
+        <div class="chart-scene">
+          <div class="bar bar1"></div>
+          <div class="bar bar2"></div>
+          <div class="bar bar3"></div>
+          <div class="bar bar4"></div>
+          <div class="bar bar5"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <span class="badge"
+        ><span class="dot"></span> FlyRank &middot; Backend AI Engineering</span
+      >
+      <h1>PDF Report Generator</h1>
+      <p class="sub">
+        SQL-aggregated sales data, rendered into a downloadable PDF through a
+        background-job pipeline — query, generate, poll, download.
+      </p>
+
+      <div class="panel">
+        <div class="btn-row">
+          <button id="btn-summary">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M4 20V10M12 20V4M20 20v-7" />
+            </svg>
+            Preview aggregated data
+          </button>
+          <button id="btn-generate">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" />
+            </svg>
+            Generate PDF report
+          </button>
+        </div>
+
+        <div id="progress"></div>
+
+        <div class="output-wrap">
+          <div class="output-header">
+            <span class="traffic"><span></span><span></span><span></span></span>
+            response.json
+          </div>
+          <pre id="out">Click a button above to run a request…</pre>
+        </div>
+      </div>
+
+      <footer>
+        Built by
+        <a
+          href="https://www.linkedin.com/in/muhammad-ashhadullah-zaheer-41194a340/"
+          target="_blank"
+          >Muhammad Ashhadullah Zaheer</a
+        >
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
