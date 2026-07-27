@@ -39,7 +39,8 @@ A SQL-aggregated PDF report generator built for the FlyRank Backend AI Engineeri
 ---
 
 ## Live Demo
-https://flyrank-be-task-pdf-reports.vercel.app/
+
+https://fly-rank-be-task4.vercel.app
 
 ---
 
