@@ -1,4 +1,4 @@
-# FlyRank BE — PDF Report Generator
+# FlyRank BE Task 4 — PDF Report Generator
 A SQL-aggregated PDF report generator built for the FlyRank Backend AI Engineering internship (Week 7). It queries a sales dataset, aggregates it with real SQL, renders the results into a downloadable PDF, and does so through a background-job pattern: enqueue, process, poll status, download a link — never the raw file bytes.
 
 ---
